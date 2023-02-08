@@ -1,0 +1,29 @@
+version: '3'
+services:
+    maubot:
+        image: 'dock.mau.dev/maubot/maubot:latest'
+        restart: unless-stopped
+        ports:
+            - '29316:29316'
+        volumes:
+            - '/mnt/user/appdata/maubot:/data:z'
+        networks:
+            br0:
+                ipv4_address: 10.10.3.24
+        dns:
+            - 10.10.0.20
+            - 10.10.0.21
+        logging:
+            driver: "syslog"
+            options:
+                tag: "matrix-maubot"
+                syslog-address: 'tcp+tls://graylog.#####:5140'
+networks:
+  br0:
+    external: true
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 10.10.0.0/22
+        gateway: 10.10.0.1
