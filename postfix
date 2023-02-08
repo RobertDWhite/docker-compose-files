@@ -1,0 +1,46 @@
+version: '3'
+services:
+  postfix:
+    image: juanluisbaptiste/postfix:alpine
+    container_name: postfix
+    restart: unless-stopped
+    expose:
+      - 25
+    environment:
+      SMTP_SERVER: smtp-relay.gmail.com
+      SMTP_PORT: 587
+      SMTP_USERNAME: robert@#####
+      SMTP_PASSWORD: #####
+      SERVER_HOSTNAME: #####
+    networks:
+      br0:
+       ipv4_address: 10.10.3.10
+      br0.500:
+       ipv4_address: 172.16.2.140
+    dns:
+      - 10.10.0.20
+      - 10.10.0.21
+      - 172.16.2.4
+      - 172.16.2.3
+    logging:
+        driver: "syslog"
+        options:
+            tag: "postfix"
+            syslog-address: 'tcp+tls://graylog.#####:5140'
+networks:
+  br0:
+    external: true
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 10.10.0.0/22
+        gateway: 10.10.0.1
+  br0.500:
+    external: true
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.16.2.0/24
+        gateway: 172.16.2.15
