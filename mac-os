@@ -1,0 +1,25 @@
+
+version: '3'
+
+services:
+    macos:
+        container_name: 'macos'
+        image: 'docker-os-ventura'
+        privileged: true
+  #      restart: unless-stopped
+        devices:
+            - /dev/kvm
+            - /dev/snd
+            - /dev/null
+        ports:
+            - '8888:5999'
+            - '50922:10022'
+        environment:
+            - 'USERNAME=##### '
+            - 'PASSWORD=#####'
+            - 'DISPLAY=${DISPLAY:-:0.0}'
+        logging:
+            driver: "syslog"
+            options:
+                tag: "macos-docker"
+                syslog-address: 'tcp+tls://graylog.#####:5140'
