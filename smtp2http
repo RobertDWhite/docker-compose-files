@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+
+  smtp2http:
+    ports:
+     - '25:25'
+    image: uflare/smtp2http
+    command: --webhook=https://webhooks.xyz.xyz/post/xyzxyzxyz --strict=false
