@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+
+  maubot:
+      image: 'dock.mau.dev/maubot/maubot:latest'
+      restart: unless-stopped
+      ports:
+          - '29316:29316'
+      volumes:
+          - './maubot:/data:z'
+
+  postgres-maubot:
+    # Official Postgres image from DockerHub (we use the last version)
+    image: 'postgres:latest'
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres # The PostgreSQL user (useful to connect to the database)
+      POSTGRES_PASSWORD: xyzxyzxyz # The PostgreSQL password (useful to connect to the database)
+      POSTGRES_DB: postgres # The PostgreSQL default database (automatically created at first launch)
