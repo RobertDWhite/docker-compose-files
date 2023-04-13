@@ -1,0 +1,159 @@
+version: '3'
+services:
+  db:
+    restart: always
+    image: postgres:14-alpine
+    shm_size: 256mb
+    networks:
+      - internal_network
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
+    volumes:
+      - ./postgres14:/var/lib/postgresql/data
+    environment:
+      - 'POSTGRES_HOST_AUTH_METHOD=trust'
+
+  redis:
+    restart: always
+    image: redis:7-alpine
+    networks:
+      - internal_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+    volumes:
+      - ./redis:/data
+
+  web:
+#    build: .
+    image: ghcr.io/mastodon/mastodon
+    hostname: mastodonweb
+    restart: always
+    env_file: .env.production
+    command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
+    networks:
+      - external_network
+      - internal_network
+    healthcheck:
+      # prettier-ignore
+      test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:3000/health || exit 1']
+
+    ports:
+ #     - '127.0.0.1:3000:3000'
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+      # - es
+    volumes:
+      - ./public/system:/mastodon/public/system
+
+  streaming:
+ #   build: .
+    image: ghcr.io/mastodon/mastodon
+    restart: always
+    env_file: .env.production
+    command: node ./streaming
+    networks:
+      - external_network
+      - internal_network
+    healthcheck:
+      # prettier-ignore
+      test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:4000/api/v1/streaming/health || exit 1']
+    ports:
+      - '127.0.0.1:4000:4000'
+    depends_on:
+      - db
+      - redis
+
+  sidekiq:
+  #  build: .
+    image: ghcr.io/mastodon/mastodon
+    restart: always
+    env_file: .env.production
+    command: bundle exec sidekiq
+    depends_on:
+      - db
+      - redis
+    networks:
+      - external_network
+      - internal_network
+    volumes:
+      - ./public/system:/mastodon/public/system
+    healthcheck:
+      test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
+
+  ## Uncomment to enable federation with tor instances along with adding the following ENV variables
+  ## http_proxy=http://privoxy:8118
+  ## ALLOW_ACCESS_TO_HIDDEN_SERVICE=true
+  tor:
+    image: sirboops/tor
+    networks:
+       - external_network
+       - internal_network
+
+  privoxy:
+    image: sirboops/privoxy
+    volumes:
+      - ./priv-config:/opt/config
+    networks:
+      - external_network
+      - internal_network
+      
+  npm-db:
+    image: jc21/mariadb-aria:latest
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=xyzxyzxyz
+      - MYSQL_DATABASE=npm
+      - MYSQL_USER=npm
+      - MYSQL_PASSWORD=xyzxyzxyz
+    volumes:
+      - npm-db:/var/lib/mysql
+    networks:
+      - internal_network
+
+  npm-app:
+    image: jc21/nginx-proxy-manager:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    environment:
+      - DB_MYSQL_HOST=npm-db
+      - DB_MYSQL_PORT=3306
+      - DB_MYSQL_USER=npm
+      - DB_MYSQL_PASSWORD=xyzxyzxyz
+      - DB_MYSQL_NAME=npm
+    volumes:
+      - npm-data:/data
+      - npm-ssl:/etc/letsencrypt
+    networks:
+      - external_network
+      - internal_network
+
+  postfix:
+    image: juanluisbaptiste/postfix:alpine
+    container_name: postfix
+    restart: unless-stopped
+    expose:
+      - 25
+    environment:
+      SMTP_SERVER: smtp-relay.gmail.com
+      SMTP_PORT: 587
+      SMTP_USERNAME: xyzxyzxyz
+      SMTP_PASSWORD: xyzxyzxyz
+      SERVER_HOSTNAME: xyzxyzxyz
+    networks:
+      - external_network
+      - internal_network
+
+volumes:
+  npm-db:
+  npm-ssl:
+  npm-data:
+
+networks:
+  external_network:
+  internal_network:
+    internal: true
