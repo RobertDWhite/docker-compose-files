@@ -1,0 +1,66 @@
+version: "3.5"
+
+services:
+    scrypted:
+        image: koush/scrypted
+        environment:
+            - SCRYPTED_WEBHOOK_UPDATE_AUTHORIZATION=Bearer xmafgsfgsfg45e535g4g4g4g4g4gnde0mfnavc5BGM
+            - SCRYPTED_WEBHOOK_UPDATE=http://localhost:10444/v1/update
+        container_name: scrypted
+        restart: unless-stopped
+        network_mode: host
+
+        devices:
+            - /dev/dri:/dev/dri
+
+        volumes:
+            - ~/.scrypted/volume:/server/volume
+        logging:
+          driver: "syslog"
+          options:
+            tag: "docker.{{.Name}}"
+            syslog-address: "tcp+tls://graylog.white.fm:5140"
+            syslog-facility: daemon
+        labels:
+            - "com.centurylinklabs.watchtower.scope=scrypted"
+
+    # watchtower manages updates for Scrypted.
+    watchtower:
+        environment:
+            - WATCHTOWER_HTTP_API_TOKEN=xxxxx
+            - WATCHTOWER_HTTP_API_UPDATE=true
+            - WATCHTOWER_SCOPE=scrypted
+            # remove the following line to never allow docker to auto update.
+            # this is not recommended.
+            - WATCHTOWER_HTTP_API_PERIODIC_POLLS=true
+        image: containrrr/watchtower
+        container_name: scrypted-watchtower
+        restart: unless-stopped
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        labels:
+            - "com.centurylinklabs.watchtower.scope=scrypted"
+        ports:
+            # The auto update port 10444 can be configured
+            # Must match the port in the auto update url above.
+            - 10444:8080
+        # check for updates once an hour (interval is in seconds)
+        command: --interval 3600 --cleanup --scope scrypted
+        logging:
+          driver: "syslog"
+          options:
+            tag: "docker.scrypted-watchtower"
+            syslog-address: "tcp+tls://graylog.white.fm:5140"
+            syslog-facility: daemon
+    homebridge:
+      image: oznu/homebridge:latest
+      restart: always
+      network_mode: host
+      volumes:
+        - ./volumes/homebridge:/homebridge
+      logging:
+        driver: "syslog"
+        options:
+          tag: "{{.Name}}"
+          syslog-address: "tcp+tls://graylog.white.fm:5140"
+          syslog-facility: daemon
