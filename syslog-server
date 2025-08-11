@@ -1,0 +1,86 @@
+services:
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config:/etc/loki
+    command: -config.file=/etc/loki/config.yaml
+  prometheus:
+    image: prom/prometheus:v2.46.0
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+
+# docker-compose.yml
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/promtail.yaml
+    command: -config.file=/etc/promtail/promtail.yaml
+    ports:
+      - "1514:1514/udp"
+      - "1514:1514/tcp"
+  npm-app:
+    image: 'docker.io/jc21/nginx-proxy-manager:latest'
+    container_name: npm-app
+    restart: unless-stopped
+    ports:
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+    environment:
+      # Mysql/Maria connection parameters:
+      DB_MARIADB_HOST: "db"
+      DB_MARIADB_PORT: 3306
+      DB_MARIADB_USER: "npm"
+      DB_MARIADB_PASSWORD: "npm"
+      DB_MARIADB_NAME: "npm"
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+    logging:
+      driver: syslog
+      options:
+        tag: "npm-white-fm"
+        syslog-address: "tcp+tls://logstash.white.fm:514"
+
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    depends_on:
+      - npm-db
+    networks:
+      - npm-nw
+      - npm-internal
+
+  npm-db:
+    image: 'mariadb:latest'
+    container_name: npm-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm'
+    logging:
+      driver: syslog
+      options:
+        tag: "npm-db-white-fm"
+        syslog-address: "tcp+tls://logstash.white.fm:514"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - npm-internal
+networks:
+  npm-internal:
+  npm-nw:
+    external: true
+volumes:
+  data:
