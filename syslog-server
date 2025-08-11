@@ -41,7 +41,7 @@ services:
       DB_MARIADB_HOST: "db"
       DB_MARIADB_PORT: 3306
       DB_MARIADB_USER: "npm"
-      DB_MARIADB_PASSWORD: "npm"
+      DB_MARIADB_PASSWORD: "npmpw123!-CHANGEME"
       DB_MARIADB_NAME: "npm"
       # Uncomment this if IPv6 is not enabled on your host
       # DISABLE_IPV6: 'true'
@@ -65,10 +65,10 @@ services:
     container_name: npm-db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_ROOT_PASSWORD: 'npmpw123!-CHANGEME'
       MYSQL_DATABASE: 'npm'
       MYSQL_USER: 'npm'
-      MYSQL_PASSWORD: 'npm'
+      MYSQL_PASSWORD: 'npmpw123!-CHANGEME'
     logging:
       driver: syslog
       options:
