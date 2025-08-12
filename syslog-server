@@ -1,4 +1,5 @@
 services:
+
   loki:
     image: grafana/loki:latest
     ports:
@@ -6,18 +7,19 @@ services:
     volumes:
       - ./loki-config:/etc/loki
     command: -config.file=/etc/loki/config.yaml
+
   prometheus:
     image: prom/prometheus:v2.46.0
     ports:
       - 9090:9090
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
   grafana:
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
 
-# docker-compose.yml
   promtail:
     image: grafana/promtail:latest
     volumes:
@@ -26,6 +28,7 @@ services:
     ports:
       - "1514:1514/udp"
       - "1514:1514/tcp"
+
   npm-app:
     image: 'docker.io/jc21/nginx-proxy-manager:latest'
     container_name: npm-app
@@ -50,7 +53,6 @@ services:
       options:
         tag: "npm-white-fm"
         syslog-address: "tcp+tls://logstash.white.fm:514"
-
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
@@ -78,9 +80,11 @@ services:
       - ./data/mysql:/var/lib/mysql
     networks:
       - npm-internal
+
 networks:
   npm-internal:
   npm-nw:
     external: true
+
 volumes:
   data:
